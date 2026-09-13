@@ -85,10 +85,13 @@
     position:absolute; inset:0;
     display:flex; align-items:center; justify-content:center;
     opacity:0; visibility:hidden;
-    transition: opacity .9s ease;
+    transition: opacity .9s ease, visibility 0s linear .9s;
   }
 
-  .piece.active{ opacity:1; visibility:visible; }
+  .piece.active{
+    opacity:1; visibility:visible;
+    transition: opacity .9s ease, visibility 0s linear 0s;
+  }
 
   .photo{
     position:absolute; inset:0;
@@ -526,21 +529,25 @@ function updateChrome(){
   document.querySelectorAll('#dots .dot').forEach((d,i) => d.classList.toggle('active', i===current));
 }
 
+let revealTimer = null;
+
 function playSequence(index){
   const el = stage.children[index];
-  el.classList.remove('reveal-photo','reveal-poem');
-  void el.offsetWidth; // reset des transitions
+  if(revealTimer) clearTimeout(revealTimer);
   requestAnimationFrame(() => {
     el.classList.add('reveal-photo');
-    setTimeout(() => el.classList.add('reveal-poem'), 2600);
+    revealTimer = setTimeout(() => el.classList.add('reveal-poem'), 2600);
   });
 }
 
 function goTo(index){
   if(index === current) { return; }
-  stage.children[current].classList.remove('active');
+  // on nettoie complètement l'ancienne pièce : plus de photo/poème "révélés"
+  // en mémoire, pour ne jamais laisser un flash de son état précédent
+  stage.children[current].classList.remove('active','reveal-photo','reveal-poem');
   current = index;
   const el = stage.children[current];
+  el.classList.remove('reveal-photo','reveal-poem'); // état neutre avant affichage
   el.classList.add('active');
   updateChrome();
   playSequence(current);
@@ -690,6 +697,7 @@ playBtn.addEventListener('click', () => {
 const intro = document.getElementById('intro');
 document.getElementById('enter-btn').addEventListener('click', () => {
   intro.classList.add('hidden');
+  stage.children[0].classList.remove('reveal-photo','reveal-poem');
   stage.children[0].classList.add('active');
   loadTrack(pieces[0]);
   // tente de lancer la musique dès l'entrée (nécessite le geste utilisateur, présent ici)
